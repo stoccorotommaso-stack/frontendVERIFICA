@@ -8,35 +8,24 @@
         :root { --primary: #2563eb; --secondary: #64748b; --success: #10b981; --danger: #ef4444; --bg: #f1f5f9; --card: #ffffff; }
         body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: #1e293b; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; }
-        
-        /* Header & Navbar */
         header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 25px; }
         .badge { background: #dcfce7; color: var(--success); padding: 5px 12px; border-radius: 20px; font-weight: bold; }
         select { padding: 8px; border-radius: 6px; border: 1px solid #cbd5e1; outline: none; }
-
-        /* Viste */
         .view { display: none; animation: fadeIn 0.3s ease; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Grid Prodotti */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
         .card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; transition: transform 0.2s; }
         .card:hover { transform: translateY(-5px); }
         .card h3 { margin: 0 0 10px 0; color: #334155; }
         .stock-out { color: var(--danger); font-size: 0.85rem; font-weight: bold; }
-
-        /* Bottoni */
         button { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 10px; }
         .btn-buy { background: var(--primary); color: white; }
         .btn-buy:disabled { background: #cbd5e1; cursor: not-allowed; }
         .btn-admin { background: var(--secondary); color: white; margin-bottom: 10px; }
-
-        /* Admin Panel */
         .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .admin-card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; }
         input { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
-
         #status-msg { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; display: none; z-index: 100; }
     </style>
 </head>
@@ -55,8 +44,7 @@
     </header>
 
     <div id="user-view" class="view active">
-        <div class="grid" id="product-list">
-            </div>
+        <div class="grid" id="product-list"></div>
     </div>
 
     <div id="admin-view" class="view">
@@ -80,7 +68,7 @@
 <div id="status-msg"></div>
 
 <script>
-    // ⚠️ SOSTITUISCI CON IL TUO URL DI RENDER
+    // ⚠️ SOSTITUISCI CON IL TUO URL DI RENDER (senza / finale)
     const API_BASE = "https://ecommerce-backend-stoccoro.onrender.com";
 
     function toggleView() {
@@ -154,7 +142,7 @@
         const name = document.getElementById('p-name').value;
         const price = document.getElementById('p-price').value;
         const stock = document.getElementById('p-stock').value;
-        
+
         await fetch(`${API_BASE}/admin/products`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -164,7 +152,7 @@
         fetchData();
     }
 
-    fetchData(); // Caricamento iniziale
+    fetchData();
 </script>
 
 </body>
