@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Commerce - Architetture Distribuite</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --text: #0f172a; --card: #ffffff; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--card); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        select { padding: 8px; font-size: 1rem; border-radius: 4px; }
+        
+        .view-section { display: none; background: var(--card); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .view-section.active { display: block; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+        .card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; text-align: center; }
+        .card h3 { margin: 0 0 10px 0; font-size: 1.2rem; }
+        
+        button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-weight: bold; width: 100%; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .admin-panel { display: flex; flex-direction: column; gap: 20px; }
+        .admin-box { border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; }
+        input { padding: 8px; margin: 5px 0; width: calc(100% - 16px); box-sizing: border-box; }
+        
+        .toast { position: fixed; bottom: 20px; right: 20px; padding: 15px; background: #333; color: white; border-radius: 4px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Store Ufficiale</h1>
+        <div>
+            <label>Accedi come: </label>
+            <select id="roleSelector" onchange="switchView()">
+                <option value="user">Utente</option>
+                <option value="admin">Amministratore</option>
+            </select>
+        </div>
+    </header>
+
+    <div id="userView" class="view-section active">
+        <h2>Il tuo Saldo: <span id="userCredits" style="color: green;">0</span> Crediti</h2>
+        <div class="grid" id="catalogContainer">
+            </div>
+    </div>
+
+    <div id="adminView" class="view-section">
+        <h2>Dashboard Amministratore</h2>
+        <div class="admin-panel">
+            
+            <div class="admin-box">
+                <h3>Assegna Crediti Bonus</h3>
+                <input type="number" id="bonusAmount" placeholder="Quantità crediti" value="50">
+                <button onclick="addCredits()">Regala Crediti all'Utente</button>
+            </div>
+
+            <div class="admin-box">
+                <h3>Aggiungi Nuovo Prodotto</h3>
+                <input type="text" id="newProdName" placeholder="Nome prodotto">
+                <input type="number" id="newProdPrice" placeholder="Prezzo (Crediti)">
+                <input type="number" id="newProdStock" placeholder="Quantità in magazzino">
+                <button onclick="addProduct()">Aggiungi a Catalogo</button>
+            </div>
+
+            <div class="admin-box">
+                <h3>Gestione Stock Esistente</h3>
+                <div id="adminStockContainer">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    // INSERISCI QUI IL TUO URL DI RENDER (es. https://ecommerce-backend-xyz.onrender.com/api)
+    const API_URL = "https://ecommerce-backend-1234.onrender.com/api"; 
+
+    // GESTIONE VISTE (Simulazione Login)
+    function switchView() {
+        const role = document.getElementById('roleSelector').value;
+        document.getElementById('userView').classList.toggle('active', role === 'user');
+        document.getElementById('adminView').classList.toggle('active', role === 'admin');
+        loadData(); // Ricarica i dati quando cambi vista
+    }
+
+    // MESSAGGI A SCHERMO (Toast)
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toast');
+        toast.innerText = msg;
+        toast.style.background = isError ? '#ef4444' : '#10b981';
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    // CARICA DATI DAL SERVER
+    async function loadData() {
+        try {
+            const res = await fetch(`${API_URL}/data`);
+            if (!res.ok) throw new Error("Errore di rete");
+            const data = await res.json();
+            
+            // Aggiorna UI Utente
+            document.getElementById('userCredits').innerText = data.user.credits;
+            renderCatalog(data.products, data.user.credits);
+            
+            // Aggiorna UI Admin
+            renderAdminStock(data.products);
+        } catch (error) {
+            showToast("Errore di connessione col server", true);
+        }
+    }
+
+    // DISEGNA CATALOGO (Utente)
+    function renderCatalog(products, userCredits) {
+        const container = document.getElementById('catalogContainer');
+        container.innerHTML = '';
+        
+        products.forEach(p => {
+            const canAfford = userCredits >= p.price;
+            const inStock = p.stock > 0;
+            const btnText = !inStock ? 'Esaurito' : (!canAfford ? 'Crediti Insufficienti' : 'Compra');
+            
+            container.innerHTML += `
+                <div class="card">
+                    <h3>${p.name}</h3>
+                    <p>Prezzo: <strong>${p.price}</strong> cr.</p>
+                    <p>Disponibili: ${p.stock}</p>
+                    <button onclick="buyProduct(${p.id})" ${(!inStock || !canAfford) ? 'disabled' : ''}>${btnText}</button>
+                </div>
+            `;
+        });
+    }
+
+    // DISEGNA GESTIONE STOCK (Admin)
+    function renderAdminStock(products) {
+        const container = document.getElementById('adminStockContainer');
+        container.innerHTML = '';
+        products.forEach(p => {
+            container.innerHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span>${p.name} (Attuali: ${p.stock})</span>
+                    <div>
+                        <input type="number" id="stock_${p.id}" value="${p.stock}" style="width:60px; display:inline;">
+                        <button style="width:auto;" onclick="updateStock(${p.id})">Aggiorna</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    // AZIONI UTENTE
+    async function buyProduct(id) {
+        const res = await fetch(`${API_URL}/buy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ productId: id })
+        });
+        const result = await res.json();
+        
+        if (!res.ok) showToast(result.error, true);
+        else { showToast(result.message); loadData(); }
+    }
+
+    // AZIONI ADMIN
+    async function addCredits() {
+        const amount = parseInt(document.getElementById('bonusAmount').value);
+        const res = await fetch(`${API_URL}/admin/credits`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount })
+        });
+        const result = await res.json();
+        showToast(result.message || result.error, !res.ok);
+        loadData();
+    }
+
+    async function addProduct() {
+        const name = document.getElementById('newProdName').value;
+        const price = parseInt(document.getElementById('newProdPrice').value);
+        const stock = parseInt(document.getElementById('newProdStock').value);
+
+        const res = await fetch(`${API_URL}/admin/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, price, stock })
+        });
+        const result = await res.json();
+        showToast(result.message || result.error, !res.ok);
+        if(res.ok) {
+            document.getElementById('newProdName').value = '';
+            document.getElementById('newProdPrice').value = '';
+            document.getElementById('newProdStock').value = '';
+            loadData();
+        }
+    }
+
+    async function updateStock(id) {
+        const newStock = parseInt(document.getElementById(`stock_${id}`).value);
+        const res = await fetch(`${API_URL}/admin/products/${id}/stock`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newStock })
+        });
+        const result = await res.json();
+        showToast(result.message || result.error, !res.ok);
+        loadData();
+    }
+
+    // Avvia al caricamento
+    loadData();
+</script>
+</body>
+</html>
